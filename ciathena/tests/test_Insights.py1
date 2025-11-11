@@ -1,0 +1,60 @@
+import pytest
+# from playwright.async_api import async_playwright
+# #from playwright.sync_api import sync_playwright, expect
+#
+# from ciathena.pages.BasePage import BasePage
+# from ciathena.pages.InsightsHubPage import InsightsHubPage
+# from ciathena.pages.LoginPage import LoginPage
+# from ciathena.pages.WelcomePage import WelcomePage
+
+@pytest.mark.usefixtures("step_logger")
+@pytest.mark.smoke
+@pytest.mark.asyncio
+async def test_Insights(setup):
+   # async with async_playwright() as p:
+        insightshubPage = setup
+#---
+        # browser = await p.chromium.launch(headless=False)
+        # page = await browser.new_page()
+        # basepage = BasePage(page, step_logger)
+        # await basepage.navigate("https://ciathena-qa.customerinsights.ai/")
+        #
+        #
+        # loginPage = LoginPage(page, step_logger)
+        # welcomePage = WelcomePage(page, step_logger)
+        # insightshubPage = InsightsHubPage(page, step_logger)
+        #
+        # await loginPage.login()
+#---
+
+
+        # await welcomePage.select_usecase()
+        # await insightshubPage.verify_insightshub_UI() # <-- share with tests
+        # await insightshubPage.verify_executive_cards() # <-- share with tests
+        #await insightshubPage.verify_chart_details() # <-- share with tests
+        await insightshubPage.verify_personalized_insights_all_sections()
+        #await insightshubPage.verify_personalized_insights0()
+#        browser.close()
+
+@pytest.mark.asyncio
+@pytest.mark.smoke
+async def test_verify_executive_insights(setup):
+    insightshubPage = setup
+    await insightshubPage.verify_insightshub_UI()  # <-- share with tests
+    await insightshubPage.verify_executive_cards()  # <-- share with tests
+    await insightshubPage.verify_chart_details() # <-- share with tests
+
+
+# @pytest.mark.smoke
+# def test_verify_personalized_insights(setup):
+#     insightshub = setup
+#     # insightshub.verify_personalized_insights2()
+#     # insightshub.verify_personalized_insights0()
+#     insightshub.verify_personalized_insights_all_sections()
+
+                #collabspace.create_new_space()
+                #collabspace.member_sharing()
+                #collabspace.rename_spaces()
+                #collabspace.delete_spaces()
+
+                #collabspace.create_Dashboard()
