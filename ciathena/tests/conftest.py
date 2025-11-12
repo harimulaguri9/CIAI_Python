@@ -1,43 +1,67 @@
-import os
 import pytest
-from pytest_html import extras
 from playwright.async_api import async_playwright
 from ciathena.pages.BasePage import BasePage
 from ciathena.pages.LoginPage import LoginPage
 from ciathena.pages.WelcomePage import WelcomePage
 from ciathena.pages.InsightsHubPage import InsightsHubPage
+from pytest_html import extras
 
-pytest_plugins = ["pytest_asyncio"]
+# @pytest.fixture(scope="session")
+# async def browser_context():
+#     """Launch browser once per session with SSL handling."""
+#     async with async_playwright() as p:
+#         print("🚀 Launching Chromium browser...")
+#         browser = await p.chromium.launch(headless=False, slow_mo=100)
+#         # Ignore SSL certificate errors (helpful for QA/staging URLs)
+#         context = await browser.new_context(ignore_https_errors=True)
+#         yield context
+#         print("🛑 Closing browser...")
+#         await browser.close()
 
-@pytest.fixture(scope="session")
-async def browser_context():
-    """Launch browser once per test session."""
-    headless = os.getenv("HEADLESS", "true").lower() == "true"
-    playwright = await async_playwright().start()
-    browser = await playwright.chromium.launch(headless=headless, slow_mo=50)
-    context = await browser.new_context()
-    yield context
-    await context.close()
-    await browser.close()
-    await playwright.stop()
 
 @pytest.fixture(scope="function")
-async def setup(browser_context, step_logger):
-    """Setup before each test — opens page, logs in, returns InsightsHubPage."""
-    page = await browser_context.new_page()
-    basepage = BasePage(page, step_logger)
-    loginPage = LoginPage(page, step_logger)
-    welcomePage = WelcomePage(page, step_logger)
-    insightshubPage = InsightsHubPage(page, step_logger)
+async def setup(step_logger):
+    async with async_playwright() as p:
+        print("🚀 Launching Chromium browser...")
+        browser = await p.chromium.launch(headless=False, slow_mo=100)
+        context = await browser.new_context()
+        """Create a new page and initialize all page objects."""
+        page = await context.new_page()
+        print(f"🧩 New Page Created: {id(page)}")
 
-    await basepage.navigate("https://ciathena-qa.customerinsights.ai/")
-    await loginPage.login()
-    # If welcomePage.select_usecase() is needed for all tests, uncomment:
-    # await welcomePage.select_usecase()
+    # Initialize all your page objects
+        basepage = BasePage(page, step_logger)
+        loginPage = LoginPage(page, step_logger)
+        welcomePage = WelcomePage(page, step_logger)
+        insightshubPage = InsightsHubPage(page, step_logger)
 
-    return insightshubPage  # Use return instead of yield
+        print(f"🧩 BasePage Using Page: {id(basepage.page)}")
 
-# Hooks and logging fixture
+        print("🔹 Starting navigation...")
+        await basepage.navigate("https://ciathena-qa.customerinsights.ai/")
+        yield {
+            "page": page,
+            "basepage": basepage,
+            "loginPage": loginPage,
+            "welcomePage": welcomePage,
+            "insightshubPage": insightshubPage,
+        }
+
+        print("🧹 Closing page after test...")
+        await page.close()
+
+
+
+@pytest.fixture
+def step_logger(request):
+    request.node.step_logs = []
+
+    def log_step(message: str):
+        print(f"[STEP] {message}")
+        request.node.step_logs.append(f"➡️ {message}")
+
+    return log_step
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
@@ -45,16 +69,5 @@ def pytest_runtest_makereport(item, call):
     if hasattr(item, "step_logs") and rep.when == "call":
         html_steps = "<br>".join(item.step_logs)
         extra = getattr(rep, "extra", [])
-        extra.append(
-            extras.html(f"<div><strong>Execution Steps:</strong><br>{html_steps}</div>")
-        )
+        extra.append(extras.html(f"<div><strong>Steps:</strong><br>{html_steps}</div>"))
         rep.extra = extra
-
-@pytest.fixture
-def step_logger(request):
-    """Fixture to record step-by-step logs."""
-    request.node.step_logs = []
-    def log_step(message: str):
-        print(f"[STEP] {message}")
-        request.node.step_logs.append(f"➡️ {message}")
-    return log_step
